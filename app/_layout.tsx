@@ -1,24 +1,24 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-
-import { useColorScheme } from '@/components/useColorScheme';
+import { ThemeProvider, useCustomTheme } from '@/context/ThemeContext';
+import { View, Pressable } from 'react-native';
+import { ArrowLeft } from 'lucide-react-native';
+import { cn } from '@/lib/utils';
+import "../global.css";
 
 export {
-  // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -27,7 +27,6 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -38,22 +37,71 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  if (!loaded) return null;
 
-  return <RootLayoutNav />;
+  return (
+    <ThemeProvider>
+      <RootLayoutNav />
+    </ThemeProvider>
+  );
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const { colorScheme, primaryColor } = useCustomTheme();
+
+  const CustomDarkTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: '#09090b', // zinc-950
+      card: '#09090b',
+      text: '#fafafa',
+      primary: primaryColor,
+      border: '#27272a', // zinc-800
+    },
+  };
+
+  const CustomLightTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: '#fafafa', // zinc-50
+      card: '#ffffff',
+      text: '#09090b',
+      primary: primaryColor,
+      border: '#f4f4f5', // zinc-100
+    },
+  };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <View className={cn("flex-1 pb-12", colorScheme === 'dark' ? 'dark bg-zinc-950' : 'bg-zinc-50')}>
+      <NavigationThemeProvider value={colorScheme === 'dark' ? CustomDarkTheme : CustomLightTheme}>
+        <StackScreenContent colorScheme={colorScheme} />
+      </NavigationThemeProvider>
+    </View>
+  );
+}
+
+function StackScreenContent({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
+  return (
+    <Stack screenOptions={{
+      headerStyle: { backgroundColor: colorScheme === 'dark' ? '#09090b' : '#fafafa' },
+      headerTitleStyle: { color: colorScheme === 'dark' ? '#fafafa' : '#09090b', fontWeight: 'bold' },
+      headerTintColor: colorScheme === 'dark' ? '#fafafa' : '#09090b',
+    }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="settings/index"
+        options={{
+          title: 'Settings',
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} className="p-2 -ml-2">
+              <ArrowLeft size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
+            </Pressable>
+          ),
+        }}
+      />
+      <Stack.Screen name="note/[id]" options={{ headerShown: false }} />
+    </Stack>
   );
 }

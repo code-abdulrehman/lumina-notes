@@ -1,57 +1,49 @@
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+import { Tabs } from 'expo-router';
+import { StickyNote, Clock } from 'lucide-react-native';
+import { useCustomTheme } from '@/context/ThemeContext';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colorScheme, primaryColor, reminderCount } = useCustomTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
+        tabBarActiveTintColor: primaryColor,
+        tabBarInactiveTintColor: '#71717a',
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colorScheme === 'dark' ? '#09090b' : '#ffffff',
+          borderTopColor: colorScheme === 'dark' ? '#27272a' : '#e4e4e7',
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 60,
+          elevation: 0,
+          borderTopWidth: 1,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        }
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          title: 'Notes',
+          tabBarIcon: ({ color }) => <StickyNote size={24} color={color} strokeWidth={2.5} />,
         }}
       />
       <Tabs.Screen
         name="two"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: 'Reminders',
+          tabBarIcon: ({ color }) => <Clock size={24} color={color} strokeWidth={2.5} />,
+          tabBarBadge: reminderCount > 0 ? reminderCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: primaryColor,
+            color: 'white',
+            fontSize: 10,
+          }
         }}
       />
     </Tabs>
