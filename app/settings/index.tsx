@@ -75,13 +75,13 @@ export default function SettingsScreen() {
                 <View className="mt-6">
                     <Text className="px-6 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-[2px]">Brand Accent</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} className="bg-white dark:bg-zinc-900 py-6 px-5 mt-2 border-y border-zinc-100 dark:border-zinc-800">
-                        <View className="flex-row space-x-5 pr-10">
+                        <View className="flex-row space-x-5 pr-10 gap-2">
                             {PRIMARY_COLORS.map((c) => (
                                 <Pressable
                                     key={c.value}
                                     onPress={() => setPrimaryColor(c.value)}
                                     style={{ backgroundColor: c.value }}
-                                    className="w-14 h-14 rounded-3xl items-center justify-center shadow-md shadow-black/10"
+                                    className="w-14 h-14 rounded-xl items-center justify-center shadow-md shadow-black/10"
                                 >
                                     {primaryColor === c.value && <Check size={26} color="white" strokeWidth={3} />}
                                 </Pressable>
@@ -95,7 +95,8 @@ export default function SettingsScreen() {
                     <Text className="px-6 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-[2px]">AI Intelligence</Text>
                     <View className="bg-white dark:bg-zinc-900 px-6 py-8 mt-2 border-y border-zinc-100 dark:border-zinc-800">
                         <View className="flex-row items-center mb-6">
-                            <View className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl items-center justify-center mr-5">
+                            <View className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl items-center justify-center mr-5"
+                            >
                                 <Key size={22} color="#f59e0b" />
                             </View>
                             <View className="flex-1">
@@ -107,9 +108,9 @@ export default function SettingsScreen() {
                             </View>
                         </View>
 
-                        <View className="flex-row items-center space-x-3">
+                        <View className="flex-row items-center gap-1">
                             <TextInput
-                                className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700 rounded-2xl px-5 py-4 dark:text-white font-mono text-sm shadow-inner"
+                                className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700 rounded-2xl px-5 py-3 dark:text-white font-mono text-sm shadow-inner"
                                 placeholder="..."
                                 placeholderTextColor="#71717a"
                                 secureTextEntry

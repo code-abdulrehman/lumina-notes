@@ -4,7 +4,9 @@ export interface Note {
     id: string;
     title: string;
     content: string;
-    color?: string;
+    bgColor?: string;
+    bgGradient?: string[];
+    bgPattern?: string;
     isPinned?: boolean;
     reminder?: string;
     isCompleted?: boolean;

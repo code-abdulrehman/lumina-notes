@@ -101,11 +101,11 @@ export default function HomeScreen() {
             </Text>
           </View>
         ) : (
-          <View className="flex-row">
-            <View className="flex-1">
+          <View className="flex-row w-full">
+            <View className="w-1/2">
               {leftColumnNotes.map(note => <NoteCard key={note.id} note={note} />)}
             </View>
-            <View className="flex-1">
+            <View className="w-1/2">
               {rightColumnNotes.map(note => <NoteCard key={note.id} note={note} />)}
             </View>
           </View>
