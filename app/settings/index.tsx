@@ -111,7 +111,7 @@ export default function SettingsScreen() {
                         <View className="flex-row items-center gap-1">
                             <TextInput
                                 className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700 rounded-2xl px-5 py-3 dark:text-white font-mono text-sm shadow-inner"
-                                placeholder="..."
+                                placeholder="key=AIzaS***********"
                                 placeholderTextColor="#71717a"
                                 secureTextEntry
                                 value={apiKeyInput}
