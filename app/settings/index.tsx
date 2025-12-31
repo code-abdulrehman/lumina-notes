@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, TextInput, Linking } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, TextInput, Linking, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { Trash2, Check, Key, ExternalLink, ChevronRight } from 'lucide-react-native';
@@ -71,6 +71,18 @@ export default function SettingsScreen() {
     return (
         <View className="flex-1 bg-zinc-50 dark:bg-zinc-950">
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 60 }}>
+                {/* Brand Header */}
+                <View className="items-center py-10">
+                    <View className="w-24 h-24 rounded-[32px] overflow-hidden shadow-2xl mb-4 scale-110">
+                        <Image
+                            source={require('@/assets/images/icon.png')}
+                            className="w-full h-full"
+                        />
+                    </View>
+                    <Text className="text-3xl font-black text-zinc-900 dark:text-zinc-50 tracking-tighter">Lumina</Text>
+                    <Text className="text-zinc-400 font-bold text-xs uppercase tracking-[3px] mt-1">Version 1.2.0</Text>
+                </View>
+
                 {/* Primary Color Selection */}
                 <View className="mt-6">
                     <Text className="px-6 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-[2px]">Brand Accent</Text>
@@ -95,9 +107,9 @@ export default function SettingsScreen() {
                     <Text className="px-6 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-[2px]">AI Intelligence</Text>
                     <View className="bg-white dark:bg-zinc-900 px-6 py-8 mt-2 border-y border-zinc-100 dark:border-zinc-800">
                         <View className="flex-row items-center mb-6">
-                            <View className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl items-center justify-center mr-5"
+                            <View className="w-12 h-12 bg-zinc-50 dark:bg-zinc-950 rounded-2xl items-center justify-center mr-5"
                             >
-                                <Key size={22} color="#f59e0b" />
+                                <Key size={22} color={primaryColor} />
                             </View>
                             <View className="flex-1">
                                 <Text className="font-extrabold text-base dark:text-white">Gemini API Key</Text>
@@ -145,7 +157,7 @@ export default function SettingsScreen() {
                     <View className="bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-full mb-3">
                         <Text className="text-zinc-500 dark:text-zinc-400 text-[10px] font-black tracking-[4px] uppercase">Lumina Notes</Text>
                     </View>
-                    <Text className="text-zinc-400 text-[10px] font-bold">Version 1.2.0 • Premium Edition</Text>
+                    <Text className="text-zinc-400 text-[10px] font-bold">Made with ❤️ by <Text className="font-bold">Abdulrehman </Text> &copy; {new Date().getFullYear()}</Text>
                 </View>
             </ScrollView>
         </View>

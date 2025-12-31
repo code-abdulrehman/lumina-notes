@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, RefreshControl, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, RefreshControl, Platform, Image } from 'react-native';
 import { useFocusEffect, useRouter, Stack } from 'expo-router';
 import { storage, Note } from '@/lib/storage';
 import { NoteCard } from '@/components/NoteCard';
@@ -34,11 +34,17 @@ export default function HomeScreen() {
 
   const filteredNotes = useMemo(() => {
     const query = search.toLowerCase().trim();
-    if (!query) return notes;
-    return notes.filter(n =>
-      (n.title?.toLowerCase().includes(query)) ||
-      (n.content?.toLowerCase().includes(query))
-    );
+    let result = notes;
+
+    if (query) {
+      result = notes.filter(n =>
+        (n.title?.toLowerCase().includes(query)) ||
+        (n.content?.toLowerCase().includes(query))
+      );
+    }
+
+    // Auto Order: Sort by updatedAt descending (newest/most recently edited first)
+    return [...result].sort((a, b) => b.updatedAt - a.updatedAt);
   }, [notes, search]);
 
   const leftColumnNotes = filteredNotes.filter((_, i) => i % 2 === 0);
@@ -48,8 +54,35 @@ export default function HomeScreen() {
     <SafeAreaView className="flex-1 bg-zinc-50 dark:bg-zinc-950" edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Modern Search Bar Header */}
-      <View className="px-5 pt-4 pb-3">
+      {/* Brand Header */}
+      <View className="px-6 pt-6 pb-2 flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <View className="w-10 h-10 rounded-xl overflow-hidden mr-3 shadow-lg">
+            <Image
+              source={require('@/assets/images/icon.png')}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+          </View>
+          <View>
+            <Text className="text-2xl font-black text-zinc-900 dark:text-zinc-50 tracking-tighter">
+              Lumina
+            </Text>
+            <Text className="text-[10px] font-black text-zinc-400 uppercase tracking-[2px] -mt-1">
+              Notes
+            </Text>
+          </View>
+        </View>
+        <Pressable
+          onPress={() => router.push('/settings')}
+          className="w-10 h-10 items-center justify-center rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm"
+        >
+          <SettingsIcon size={20} color={primaryColor} />
+        </Pressable>
+      </View>
+
+      {/* Modern Search Bar */}
+      <View className="px-5 pt-2 pb-3">
         <View
           className={cn(
             "flex-row items-center px-4 py-3 rounded-2xl border shadow-sm",
@@ -67,12 +100,6 @@ export default function HomeScreen() {
             onChangeText={setSearch}
             autoCapitalize="none"
           />
-          <Pressable
-            onPress={() => router.push('/settings')}
-            className="ml-2 w-10 h-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800/50"
-          >
-            <SettingsIcon size={20} color={primaryColor} />
-          </Pressable>
         </View>
       </View>
 

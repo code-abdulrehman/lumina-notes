@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { storage, Note } from '@/lib/storage';
 import { ai } from '@/lib/gemini';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Save, Sparkles, Image as ImageIcon, Palette, Trash2, Send, Heading1, Bold, Code, List, Eye, Edit3, Clock, Check, Wand2, AlignLeft, HelpCircle, X, CheckCircle2, Circle, Copy, PlusCircle, RefreshCw, Loader } from 'lucide-react-native';
+import { ArrowLeft, Save, Sparkles, Image as ImageIcon, Palette, Trash2, Send, Heading1, Bold, Code, List, Eye, Edit3, Clock, Check, Wand2, AlignLeft, HelpCircle, X, CheckCircle2, Circle, Copy, PlusCircle, RefreshCw, Loader, ExternalLink } from 'lucide-react-native';
 import Markdown from 'react-native-markdown-display';
 import * as ImagePicker from 'expo-image-picker';
 import * as Network from 'expo-network';
@@ -14,6 +14,7 @@ import { useCustomTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Video, ResizeMode } from 'expo-av';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -24,16 +25,15 @@ const NOTE_COLORS = [
     { name: 'Yellow', type: 'color', value: '#fef08a' },
     { name: 'Green', type: 'color', value: '#d9f99d' },
     { name: 'Blue', type: 'color', value: '#bfdbfe' },
-    { name: 'Purple', type: 'color', value: '#ddd6fe' },
 ];
 
 const NOTE_GRADIENTS = [
     { name: 'Sunset', value: ['#fdba74', '#f87171'] },
-    { name: 'Ocean', value: ['#7dd3fc', '#3b82f6'] },
-    { name: 'Lumina', value: ['#c4b5fd', '#a78bfa'] },
     { name: 'Emerald', value: ['#6ee7b7', '#10b981'] },
-    { name: 'Rose', value: ['#fda4af', '#e11d48'] },
-    { name: 'Sky', value: ['#97dff5ff', '#85dcf7ff'] },
+    { name: 'Aurora', value: ['#fef08a', '#facc15'] },
+    { name: 'Coral', value: ['#ffb3b3', '#ff4d4d'] },
+    { name: 'Twilight', value: ['#fbcfe8', '#a78bfa'] },
+    { name: 'Skyline', value: ['#bae6fd', '#0ea5e9'] },
 ];
 
 const NOTE_PATTERNS = [
@@ -48,13 +48,31 @@ const NOTE_PATTERNS = [
 const PatternOverlay = ({ pattern }: { pattern?: string }) => {
     if (!pattern || pattern === 'none') return null;
     return (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none" className="opacity-[0.05] dark:opacity-[0.1]">
+        <View style={StyleSheet.absoluteFill} pointerEvents="none" className="opacity-[0.08] dark:opacity-[0.15]">
             {pattern === 'dots' && (
                 <View className="flex-1 flex-wrap flex-row p-2">
                     {Array(150).fill(0).map((_, i) => (
                         <View key={i} className="w-4 h-4 items-center justify-center">
                             <View className="w-1 h-1 bg-black dark:bg-white rounded-full" />
                         </View>
+                    ))}
+                </View>
+            )}
+            {pattern === 'stars' && (
+                <View className="flex-1 overflow-hidden">
+                    {Array(80).fill(0).map((_, i) => (
+                        <View key={i}
+                            style={{
+                                position: 'absolute',
+                                top: `${Math.random() * 100}%`,
+                                left: `${Math.random() * 100}%`,
+                                width: Math.random() * 2 + 1,
+                                height: Math.random() * 2 + 1,
+                                borderRadius: 10,
+                                backgroundColor: Platform.OS === 'ios' ? (i % 2 === 0 ? '#ffffff' : '#000000') : '#71717a',
+                                opacity: Math.random() * 0.5 + 0.1
+                            }}
+                        />
                     ))}
                 </View>
             )}
@@ -91,6 +109,13 @@ const PatternOverlay = ({ pattern }: { pattern?: string }) => {
                     ))}
                 </View>
             )}
+            {pattern === 'waves' && (
+                <View className="flex-1 p-2">
+                    {Array(20).fill(0).map((_, i) => (
+                        <View key={i} className="mb-4 h-4 w-full border-b-2 border-dashed border-black dark:border-white rounded-full opacity-30 rotate-[2deg]" />
+                    ))}
+                </View>
+            )}
         </View>
     );
 };
@@ -119,6 +144,8 @@ export default function NoteScreen() {
     const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model'; parts: { text: string }[] }[]>([]);
     const [isOnline, setIsOnline] = useState(true);
     const [activeAction, setActiveAction] = useState<'summarize' | 'rewrite' | 'explain' | null>(null);
+    const [selection, setSelection] = useState({ start: 0, end: 0 });
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     useEffect(() => {
         if (id && id !== 'new') {
@@ -139,7 +166,27 @@ export default function NoteScreen() {
     };
 
     const insertMarkdown = (tag: string) => {
-        setNote(prev => ({ ...prev, content: (prev.content || '') + '\n' + tag + ' ' }));
+        const content = note.content || '';
+        const { start, end } = selection;
+
+        if (start !== end) {
+            // Selection exists, wrap it
+            const selectedText = content.substring(start, end);
+            let newText = '';
+            if (tag === '#' || tag === '-') {
+                newText = content.substring(0, start) + tag + ' ' + selectedText + content.substring(end);
+            } else if (tag === '[') {
+                newText = content.substring(0, start) + '[' + selectedText + '](url)' + content.substring(end);
+            } else {
+                newText = content.substring(0, start) + tag + selectedText + tag + content.substring(end);
+            }
+            setNote(prev => ({ ...prev, content: newText }));
+        } else {
+            // No selection, just insert
+            const prefix = content.substring(0, start);
+            const suffix = content.substring(start);
+            setNote(prev => ({ ...prev, content: prefix + (tag === '[' ? '[text](url)' : tag + ' ') + suffix }));
+        }
     };
 
     const handleSave = async () => {
@@ -180,7 +227,7 @@ export default function NoteScreen() {
     const pickImage = async () => {
         try {
             const res = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images', 'videos'],
+                mediaTypes: ['images'],
                 quality: 0.8,
                 allowsMultipleSelection: true
             });
@@ -355,17 +402,20 @@ export default function NoteScreen() {
                                 multiline
                                 value={note.content}
                                 onChangeText={t => setNote(prev => ({ ...prev, content: t }))}
+                                onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
                             />
                         )}
 
                         {note.media && note.media.length > 0 && (
-                            <View className="flex-row flex-wrap mt-6">
+                            <View className="flex-row flex-wrap mt-6 gap-3">
                                 {note.media.map((m, i) => (
                                     <View key={i} className="w-full mb-3 shadow-sm relative">
-                                        <Image source={{ uri: m.uri }} className="w-full aspect-video rounded-3xl bg-black/5" />
+                                        <Pressable onPress={() => setPreviewImage(m.uri)}>
+                                            <Image source={{ uri: m.uri }} className="w-full aspect-video rounded-3xl bg-black/5" />
+                                        </Pressable>
                                         <Pressable
                                             onPress={() => setNote(p => ({ ...p, media: p.media?.filter((_, idx) => idx !== i) }))}
-                                            className="absolute top-3 right-3 bg-red-500/80 p-2 rounded-full"
+                                            className="absolute top-3 right-3 bg-red-500/80 p-2 rounded-full z-20"
                                         >
                                             <Trash2 size={16} color="white" />
                                         </Pressable>
@@ -402,12 +452,13 @@ export default function NoteScreen() {
                     )}
 
                     {/* Toolbar */}
-                    <View className="flex-row items-center px-4 py-3 bg-white/80 dark:bg-zinc-900/80 border-t border-black/5 backdrop-blur-md">
+                    <View className="flex-row items-center px-4 py-3 bg-white/80 dark:bg-zinc-900/50 border-t border-black/5 backdrop-blur-md">
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                             <View className="flex-row space-x-6 items-center gap-3">
                                 <Pressable onPress={() => insertMarkdown('#')} className="p-1 bg-black/5 rounded-md"><Heading1 size={22} color={iconColor} /></Pressable>
                                 <Pressable onPress={() => insertMarkdown('**')} className="p-1 bg-black/5 rounded-md"><Bold size={20} color={iconColor} /></Pressable>
                                 <Pressable onPress={() => insertMarkdown('`')} className="p-1 bg-black/5 rounded-md"><Code size={20} color={iconColor} /></Pressable>
+                                <Pressable onPress={() => insertMarkdown('[')} className="p-1 bg-black/5 rounded-md"><ExternalLink size={20} color={iconColor} /></Pressable>
                                 <Pressable onPress={() => insertMarkdown('-')} className="p-1 bg-black/5 rounded-md"><List size={22} color={iconColor} /></Pressable>
                                 <View className="w-[1px] h-6 bg-black/10 mx-2" />
                                 <Pressable onPress={pickImage} className="p-1 bg-black/5 rounded-md"><ImageIcon size={22} color={iconColor} /></Pressable>
@@ -426,7 +477,7 @@ export default function NoteScreen() {
 
                             <ScrollView showsVerticalScrollIndicator={false} className="max-h-[300px]">
                                 <Text className="text-[9px] font-bold text-zinc-400 mb-3 uppercase">Solid Colors</Text>
-                                <View className="flex-row flex-wrap gap-3 mb-6">
+                                <View className="flex-row flex-wrap gap-4 mb-6">
                                     {NOTE_COLORS.map(c => (
                                         <Pressable
                                             key={c.name}
