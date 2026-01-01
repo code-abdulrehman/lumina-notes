@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Note } from '@/lib/storage';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
@@ -13,74 +13,92 @@ interface NoteCardProps {
     note: Note;
 }
 
+const NOTE_COLORS_CONFIG = {
+    light: [
+        { key: 'red', value: '#fecaca' },
+        { key: 'orange', value: '#fed7aa' },
+        { key: 'yellow', value: '#fef08a' },
+        { key: 'green', value: '#d9f99d' },
+        { key: 'blue', value: '#bfdbfe' },
+    ],
+    dark: [
+        { key: 'red', value: '#450a0a' },
+        { key: 'orange', value: '#431407' },
+        { key: 'yellow', value: '#422006' },
+        { key: 'green', value: '#064e3b' },
+        { key: 'blue', value: '#172554' },
+    ]
+};
+
+const NOTE_GRADIENTS_CONFIG = {
+    light: [
+        { key: 'sunset', value: ['#fdba74', '#f87171'] },
+        { key: 'emerald', value: ['#6ee7b7', '#10b981'] },
+        { key: 'aurora', value: ['#fef08a', '#facc15'] },
+        { key: 'coral', value: ['#ffb3b3', '#ff4d4d'] },
+        { key: 'twilight', value: ['#fbcfe8', '#a78bfa'] },
+        { key: 'skyline', value: ['#bae6fd', '#0ea5e9'] },
+    ],
+    dark: [
+        { key: 'sunset', value: ['#431407', '#450a0a'] },
+        { key: 'emerald', value: ['#064e3b', '#065f46'] },
+        { key: 'aurora', value: ['#422006', '#713f12'] },
+        { key: 'coral', value: ['#450a0a', '#691b1b'] },
+        { key: 'twilight', value: ['#4a044e', '#312e81'] },
+        { key: 'skyline', value: ['#082f49', '#1e3a8a'] },
+    ]
+};
+
 const PatternOverlay = ({ pattern }: { pattern?: string }) => {
     if (!pattern || pattern === 'none') return null;
     return (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none" className="opacity-[0.08] dark:opacity-[0.15]">
+        <View style={StyleSheet.absoluteFill} pointerEvents="none" className="opacity-[0.08] dark:opacity-[0.12]">
             {pattern === 'dots' && (
-                <View className="flex-1 flex-wrap flex-row p-1">
-                    {Array(40).fill(0).map((_, i) => (
+                <View className="flex-1 flex-wrap flex-row p-2">
+                    {Array(150).fill(0).map((_, i) => (
                         <View key={i} className="w-4 h-4 items-center justify-center">
                             <View className="w-1 h-1 bg-black dark:bg-white rounded-full" />
                         </View>
                     ))}
                 </View>
             )}
-            {pattern === 'stars' && (
-                <View className="flex-1 overflow-hidden">
-                    {Array(40).fill(0).map((_, i) => (
-                        <View key={i}
-                            style={{
-                                position: 'absolute',
-                                top: `${Math.random() * 100}%`,
-                                left: `${Math.random() * 100}%`,
-                                width: Math.random() * 2 + 0.5,
-                                height: Math.random() * 2 + 0.5,
-                                borderRadius: 10,
-                                backgroundColor: i % 2 === 0 ? '#71717a' : '#ffffff',
-                                opacity: Math.random() * 0.4 + 0.1
-                            }}
-                        />
-                    ))}
-                </View>
-            )}
             {pattern === 'lines' && (
                 <View className="flex-1">
-                    {Array(20).fill(0).map((_, i) => (
-                        <View key={i} className="h-[1px] bg-black dark:bg-white w-full border-b border-black dark:border-white mb-2" />
+                    {Array(40).fill(0).map((_, i) => (
+                        <View key={i} className="h-[1px] bg-black dark:bg-white w-full border-b border-black dark:border-white mb-4 opacity-20" />
                     ))}
                 </View>
             )}
             {pattern === 'grid' && (
                 <View className="flex-1 flex-wrap flex-row">
-                    {Array(50).fill(0).map((_, i) => (
-                        <View key={i} className="w-6 h-6 border-[0.2px] border-black dark:border-white" />
+                    {Array(100).fill(0).map((_, i) => (
+                        <View key={i} className="w-8 h-8 border-[0.5px] border-black dark:border-white opacity-20" />
                     ))}
                 </View>
             )}
             {pattern === 'hex' && (
-                <View className="flex-1 flex-wrap flex-row p-1">
-                    {Array(40).fill(0).map((_, i) => (
+                <View className="flex-1 flex-wrap flex-row p-2">
+                    {Array(80).fill(0).map((_, i) => (
                         <View key={i} className="w-6 h-6 items-center justify-center">
-                            <View className="w-4 h-4 border border-black dark:border-white rotate-[30deg]" style={{ borderRadius: 2 }} />
+                            <View className="w-4 h-4 border border-black dark:border-white rotate-[30deg] opacity-30" style={{ borderRadius: 2 }} />
                         </View>
                     ))}
                 </View>
             )}
             {pattern === 'circle' && (
-                <View className="flex-1 flex-wrap flex-row p-2">
-                    {Array(15).fill(0).map((_, i) => (
-                        <View key={i} className="w-10 h-10 items-center justify-center">
-                            <View className="w-6 h-6 rounded-full border border-black dark:border-white opacity-20" />
-                            <View className="w-2 h-2 rounded-full border border-black dark:border-white absolute" />
+                <View className="flex-1 flex-wrap flex-row p-4">
+                    {Array(40).fill(0).map((_, i) => (
+                        <View key={i} className="w-12 h-12 items-center justify-center">
+                            <View className="w-8 h-8 rounded-full border border-black dark:border-white opacity-10" />
+                            <View className="w-4 h-4 rounded-full border border-black dark:border-white absolute opacity-20" />
                         </View>
                     ))}
                 </View>
             )}
             {pattern === 'waves' && (
                 <View className="flex-1 p-2">
-                    {Array(15).fill(0).map((_, i) => (
-                        <View key={i} className="mb-2 h-2 w-full border-b border-dashed border-black dark:border-white rounded-full opacity-30 rotate-[2deg]" />
+                    {Array(20).fill(0).map((_, i) => (
+                        <View key={i} className="mb-4 h-4 w-full border-b-2 border-dashed border-black dark:border-white rounded-full opacity-20 rotate-[2deg]" />
                     ))}
                 </View>
             )}
@@ -90,34 +108,51 @@ const PatternOverlay = ({ pattern }: { pattern?: string }) => {
 
 export const NoteCard = ({ note }: NoteCardProps) => {
     const router = useRouter();
-    const { primaryColor } = useCustomTheme();
+    const { primaryColor, colorScheme } = useCustomTheme();
     const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
 
+    const currentColors = colorScheme === 'dark' ? NOTE_COLORS_CONFIG.dark : NOTE_COLORS_CONFIG.light;
+    const currentGradients = colorScheme === 'dark' ? NOTE_GRADIENTS_CONFIG.dark : NOTE_GRADIENTS_CONFIG.light;
+
+    const activeColor = note.bgColor?.startsWith('#')
+        ? note.bgColor
+        : (currentColors.find(c => c.key === note.bgColor)?.value || null);
+
+    const activeGradient = note.bgGradient?.[0]?.startsWith('#')
+        ? note.bgGradient
+        : (currentGradients.find(g => g.key === note.bgGradient?.[0])?.value || null);
+
     const renderBackground = () => {
-        if (note.bgGradient && note.bgGradient.length > 1) {
+        if (activeGradient && activeGradient.length > 1) {
             return (
                 <LinearGradient
-                    colors={note.bgGradient as [string, string, ...string[]]}
+                    colors={activeGradient as [string, string, ...string[]]}
                     style={StyleSheet.absoluteFill}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    className="rounded-2xl"
+                    className="rounded-3xl"
                 />
             );
         }
         return null;
     };
 
-    const hasCustomBg = note.bgColor || (note.bgGradient && note.bgGradient.length > 0);
-    const textColor = hasCustomBg ? "text-black/90" : "text-zinc-900 dark:text-zinc-100";
-    const subtextColor = hasCustomBg ? "text-black/60" : "text-zinc-500 dark:text-zinc-400";
-    const iconColor = hasCustomBg ? "rgba(0,0,0,0.4)" : "#71717a";
+    const hasCustomBg = !!(note.bgColor && note.bgColor !== 'none') || !!(note.bgGradient && note.bgGradient.length > 0);
+    const textColor = hasCustomBg
+        ? (colorScheme === 'dark' ? "text-white" : "text-zinc-900")
+        : "text-zinc-900 dark:text-zinc-100";
 
-    // Task parsing logic
+    const subtextColor = hasCustomBg
+        ? (colorScheme === 'dark' ? "text-zinc-300" : "text-zinc-700")
+        : "text-zinc-500 dark:text-zinc-400";
+
+    const iconColor = hasCustomBg
+        ? (colorScheme === 'dark' ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)")
+        : "#71717a";
+
+    // Task parsing
     const lines = (note.content || '').split('\n');
     const tasks = lines.filter(l => l.trim().startsWith('- [ ]') || l.trim().startsWith('- [x]'));
-    const nonTasks = lines.filter(l => !tasks.includes(l)).join('\n').trim();
-
     const activeTasks = tasks.filter(t => t.trim().startsWith('- [ ]'));
     const completedTasks = tasks.filter(t => t.trim().startsWith('- [x]'));
 
@@ -126,35 +161,30 @@ export const NoteCard = ({ note }: NoteCardProps) => {
             <Pressable
                 onPress={() => router.push(`/note/${note.id}`)}
                 className={cn(
-                    "border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm min-h-[60px] overflow-hidden",
+                    "border rounded-[28px] overflow-hidden min-h-[100px] shadow-sm",
+                    hasCustomBg ? "border-transparent" : "border-zinc-200 dark:border-zinc-800",
                     !hasCustomBg && (note.isCompleted ? "bg-zinc-100/50 dark:bg-zinc-900/50" : "bg-white dark:bg-zinc-900")
                 )}
-                style={note.bgColor ? { backgroundColor: note.bgColor } : {}}
+                style={activeColor ? { backgroundColor: activeColor } : {}}
             >
                 {renderBackground()}
                 <PatternOverlay pattern={note.bgPattern} />
 
-                <View className="relative z-10">
-                    <View className="flex-row items-center justify-between mb-3">
-                        {note.title ? (
-                            <Text
-                                className={cn("font-black text-lg flex-1 mr-2", textColor)}
-                                numberOfLines={2}
-                            >
-                                {note.title}
-                            </Text>
-                        ) : null}
-                    </View>
+                <View className="p-5 relative z-10">
+                    {note.title ? (
+                        <Text className={cn("font-black text-lg mb-2", textColor)} numberOfLines={2}>
+                            {note.title}
+                        </Text>
+                    ) : null}
 
-                    {/* Active Tasks First */}
                     {activeTasks.length > 0 && (
-                        <View className="mb-4 space-y-2.5">
-                            {activeTasks.slice(0, 5).map((task, idx) => (
+                        <View className="mb-3 space-y-2">
+                            {activeTasks.slice(0, 3).map((task, idx) => (
                                 <View key={idx} className="flex-row items-center">
-                                    <View className="mr-3 opacity-60">
-                                        <Square size={16} color={iconColor} strokeWidth={2.5} />
+                                    <View className="mr-2 opacity-50">
+                                        <Square size={14} color={iconColor} strokeWidth={3} />
                                     </View>
-                                    <Text className={cn("text-base font-medium flex-1", textColor)} numberOfLines={1}>
+                                    <Text className={cn("text-sm font-semibold flex-1", textColor)} numberOfLines={1}>
                                         {task.replace('- [ ]', '').trim()}
                                     </Text>
                                 </View>
@@ -162,100 +192,40 @@ export const NoteCard = ({ note }: NoteCardProps) => {
                         </View>
                     )}
 
-                    {/* Markdown Content Preview */}
-                    {note.content ? (
-                        <View pointerEvents="none" style={{ maxHeight: 150, overflow: 'hidden' }} className="mb-4">
+                    {note.content && !note.title && activeTasks.length === 0 ? (
+                        <View pointerEvents="none" style={{ maxHeight: 100, overflow: 'hidden' }}>
                             <Markdown style={{
                                 body: {
-                                    color: hasCustomBg ? 'rgba(0,0,0,0.7)' : (note.isCompleted ? '#a1a1aa' : '#7b7280'),
+                                    color: hasCustomBg
+                                        ? (colorScheme === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)')
+                                        : (note.isCompleted ? '#a1a1aa' : (colorScheme === 'dark' ? '#d4d4d8' : '#52525b')),
                                     fontSize: 14,
                                     lineHeight: 20,
                                 },
                                 paragraph: { marginTop: 0, marginBottom: 4 },
-                                heading1: { fontSize: 16, fontWeight: 'bold' },
-                                code_inline: { backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 3, paddingHorizontal: 2 },
-                                bullet_list: { marginTop: 0 },
-                                list_item: { marginBottom: 2 },
+                                heading1: { fontSize: 14, fontWeight: 'bold' },
+                                heading2: { fontSize: 13, fontWeight: 'bold' },
                             }}>
                                 {note.content}
                             </Markdown>
-                            {/* Suble fade out for long content */}
-                            <LinearGradient
-                                colors={['transparent', hasCustomBg ? note.bgColor || '#fff' : (note.isCompleted ? 'rgba(244,244,245,0.8)' : 'rgba(255,255,255,0.8)')]}
-                                className="absolute bottom-0 left-0 right-0 h-8"
-                                style={!hasCustomBg && { opacity: 0.1 }}
-                            />
                         </View>
                     ) : null}
 
-                    {/* Collapsible Completed Tasks */}
                     {completedTasks.length > 0 && (
-                        <View className="mt-2 border-t border-black/5 dark:border-white/5 pt-3">
-                            <Pressable
-                                onPress={() => setIsCompletedExpanded(!isCompletedExpanded)}
-                                className="flex-row items-center mb-2"
-                            >
-                                {isCompletedExpanded ? <ChevronUp size={14} color={iconColor} /> : <ChevronDown size={14} color={iconColor} />}
-                                <Text className={cn("text-xs font-bold ml-2", subtextColor)}>
-                                    {completedTasks.length} Completed items
-                                </Text>
-                            </Pressable>
-
-                            {isCompletedExpanded && (
-                                <View className="space-y-2 pl-1">
-                                    {completedTasks.map((task, idx) => (
-                                        <View key={idx} className="flex-row items-center opacity-40">
-                                            <View className="mr-3">
-                                                <CheckSquare size={16} color={iconColor} strokeWidth={2} />
-                                            </View>
-                                            <Text className={cn("text-sm line-through flex-1", textColor)} numberOfLines={1}>
-                                                {task.replace('- [x]', '').trim()}
-                                            </Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            )}
+                        <View className="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <Text className={cn("text-[10px] font-bold opacity-50", textColor)}>
+                                {completedTasks.length} Done
+                            </Text>
                         </View>
-                    )}
-
-                    {note.media && note.media.length > 0 && (
-                        <View className="mt-4 rounded-2xl overflow-hidden bg-black/5 flex-row">
-                            {note.media.slice(0, 3).map((m, i) => (
-                                <Image
-                                    key={i}
-                                    source={{ uri: m.uri }}
-                                    className="h-20 flex-1 border-r border-white/10 bg-zinc-200 dark:bg-zinc-800"
-                                />
-                            ))}
-                        </View>
-                    )}
-
-                    {/* Decorative bottom-right circle element like in image */}
-                    {hasCustomBg && (
-                        <View
-                            style={{
-                                position: 'absolute',
-                                bottom: -20,
-                                right: -20,
-                                width: 80,
-                                height: 80,
-                                borderRadius: 40,
-                                backgroundColor: hasCustomBg ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
-                                zIndex: -1
-                            }}
-                        />
                     )}
 
                     <View className="flex-row items-center justify-between mt-4">
-                        <Text className={cn("text-[10px] font-bold uppercase tracking-widest", subtextColor)}>
+                        <Text className={cn("text-[9px] font-bold uppercase tracking-widest", subtextColor)}>
                             {format(note.updatedAt, 'MMM d')}
                         </Text>
                         {note.reminder && (
-                            <View style={{ borderColor: hasCustomBg ? 'rgba(0,0,0,0.1)' : primaryColor + '20' }} className="flex-row items-center bg-black/5 dark:bg-white/10 px-2.5 py-1 rounded-full border">
-                                <Clock size={10} color={hasCustomBg ? "rgba(0,0,0,0.4)" : primaryColor} style={{ marginRight: 4 }} />
-                                <Text className={cn("text-[9px] font-black", hasCustomBg ? "text-black/50" : "dark:text-zinc-300")} style={!hasCustomBg ? { color: primaryColor } : {}}>
-                                    {note.reminder.split(' at ')[1] || note.reminder.split(', ')[1]}
-                                </Text>
+                            <View className="bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                                <Clock size={10} color={iconColor} />
                             </View>
                         )}
                     </View>

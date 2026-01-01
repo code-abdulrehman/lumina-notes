@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, Alert, Image, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Dimensions, StyleSheet } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { storage, Note } from '@/lib/storage';
@@ -14,27 +14,47 @@ import { useCustomTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Video, ResizeMode } from 'expo-av';
+import { Image as ExpoImage } from 'expo-image';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const NOTE_COLORS = [
-    { name: 'None', type: 'none', value: '' },
-    { name: 'Red', type: 'color', value: '#fecaca' },
-    { name: 'Orange', type: 'color', value: '#fed7aa' },
-    { name: 'Yellow', type: 'color', value: '#fef08a' },
-    { name: 'Green', type: 'color', value: '#d9f99d' },
-    { name: 'Blue', type: 'color', value: '#bfdbfe' },
-];
+const NOTE_COLORS_CONFIG = {
+    light: [
+        { name: 'None', key: 'none', value: '' },
+        { name: 'Red', key: 'red', value: '#fecaca' },
+        { name: 'Orange', key: 'orange', value: '#fed7aa' },
+        { name: 'Yellow', key: 'yellow', value: '#fef08a' },
+        { name: 'Green', key: 'green', value: '#d9f99d' },
+        { name: 'Blue', key: 'blue', value: '#bfdbfe' },
+    ],
+    dark: [
+        { name: 'None', key: 'none', value: '' },
+        { name: 'Red', key: 'red', value: '#450a0a' },
+        { name: 'Orange', key: 'orange', value: '#431407' },
+        { name: 'Yellow', key: 'yellow', value: '#422006' },
+        { name: 'Green', key: 'green', value: '#064e3b' },
+        { name: 'Blue', key: 'blue', value: '#172554' },
+    ]
+};
 
-const NOTE_GRADIENTS = [
-    { name: 'Sunset', value: ['#fdba74', '#f87171'] },
-    { name: 'Emerald', value: ['#6ee7b7', '#10b981'] },
-    { name: 'Aurora', value: ['#fef08a', '#facc15'] },
-    { name: 'Coral', value: ['#ffb3b3', '#ff4d4d'] },
-    { name: 'Twilight', value: ['#fbcfe8', '#a78bfa'] },
-    { name: 'Skyline', value: ['#bae6fd', '#0ea5e9'] },
-];
+const NOTE_GRADIENTS_CONFIG = {
+    light: [
+        { name: 'Sunset', key: 'sunset', value: ['#fdba74', '#f87171'] },
+        { name: 'Emerald', key: 'emerald', value: ['#6ee7b7', '#10b981'] },
+        { name: 'Aurora', key: 'aurora', value: ['#fef08a', '#facc15'] },
+        { name: 'Coral', key: 'coral', value: ['#ffb3b3', '#ff4d4d'] },
+        { name: 'Twilight', key: 'twilight', value: ['#fbcfe8', '#a78bfa'] },
+        { name: 'Skyline', key: 'skyline', value: ['#bae6fd', '#0ea5e9'] },
+    ],
+    dark: [
+        { name: 'Sunset', key: 'sunset', value: ['#431407', '#450a0a'] },
+        { name: 'Emerald', key: 'emerald', value: ['#064e3b', '#065f46'] },
+        { name: 'Aurora', key: 'aurora', value: ['#422006', '#713f12'] },
+        { name: 'Coral', key: 'coral', value: ['#450a0a', '#691b1b'] },
+        { name: 'Twilight', key: 'twilight', value: ['#4a044e', '#312e81'] },
+        { name: 'Skyline', key: 'skyline', value: ['#082f49', '#1e3a8a'] },
+    ]
+};
 
 const NOTE_PATTERNS = [
     { name: 'None', value: 'none' },
@@ -43,76 +63,59 @@ const NOTE_PATTERNS = [
     { name: 'Grid', value: 'grid' },
     { name: 'Hex', value: 'hex' },
     { name: 'Circle', value: 'circle' },
+    { name: 'Waves', value: 'waves' },
 ];
 
 const PatternOverlay = ({ pattern }: { pattern?: string }) => {
     if (!pattern || pattern === 'none') return null;
     return (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none" className="opacity-[0.08] dark:opacity-[0.15]">
+        <View style={StyleSheet.absoluteFill} pointerEvents="none" className="opacity-[0.1] dark:opacity-[0.15]">
             {pattern === 'dots' && (
                 <View className="flex-1 flex-wrap flex-row p-2">
-                    {Array(150).fill(0).map((_, i) => (
+                    {Array(200).fill(0).map((_, i) => (
                         <View key={i} className="w-4 h-4 items-center justify-center">
                             <View className="w-1 h-1 bg-black dark:bg-white rounded-full" />
                         </View>
                     ))}
                 </View>
             )}
-            {pattern === 'stars' && (
-                <View className="flex-1 overflow-hidden">
-                    {Array(80).fill(0).map((_, i) => (
-                        <View key={i}
-                            style={{
-                                position: 'absolute',
-                                top: `${Math.random() * 100}%`,
-                                left: `${Math.random() * 100}%`,
-                                width: Math.random() * 2 + 1,
-                                height: Math.random() * 2 + 1,
-                                borderRadius: 10,
-                                backgroundColor: Platform.OS === 'ios' ? (i % 2 === 0 ? '#ffffff' : '#000000') : '#71717a',
-                                opacity: Math.random() * 0.5 + 0.1
-                            }}
-                        />
-                    ))}
-                </View>
-            )}
             {pattern === 'lines' && (
                 <View className="flex-1">
-                    {Array(40).fill(0).map((_, i) => (
-                        <View key={i} className="h-[1px] bg-black dark:bg-white w-full border-b border-black dark:border-white mb-4" />
+                    {Array(50).fill(0).map((_, i) => (
+                        <View key={i} className="h-[1px] bg-black dark:bg-white w-full border-b border-black dark:border-white mb-6 opacity-30" />
                     ))}
                 </View>
             )}
             {pattern === 'grid' && (
                 <View className="flex-1 flex-wrap flex-row">
-                    {Array(100).fill(0).map((_, i) => (
-                        <View key={i} className="w-8 h-8 border-[0.5px] border-black dark:border-white" />
+                    {Array(150).fill(0).map((_, i) => (
+                        <View key={i} className="w-10 h-10 border-[0.5px] border-black dark:border-white opacity-20" />
                     ))}
                 </View>
             )}
             {pattern === 'hex' && (
-                <View className="flex-1 flex-wrap flex-row p-2">
-                    {Array(80).fill(0).map((_, i) => (
-                        <View key={i} className="w-6 h-6 items-center justify-center">
-                            <View className="w-4 h-4 border border-black dark:border-white rotate-[30deg]" style={{ borderRadius: 2 }} />
+                <View className="flex-1 flex-wrap flex-row p-4">
+                    {Array(100).fill(0).map((_, i) => (
+                        <View key={i} className="w-8 h-8 items-center justify-center">
+                            <View className="w-5 h-5 border border-black dark:border-white rotate-[30deg] opacity-30" style={{ borderRadius: 3 }} />
                         </View>
                     ))}
                 </View>
             )}
             {pattern === 'circle' && (
                 <View className="flex-1 flex-wrap flex-row p-4">
-                    {Array(40).fill(0).map((_, i) => (
-                        <View key={i} className="w-12 h-12 items-center justify-center">
-                            <View className="w-8 h-8 rounded-full border border-black dark:border-white opacity-20" />
-                            <View className="w-4 h-4 rounded-full border border-black dark:border-white absolute" />
+                    {Array(60).fill(0).map((_, i) => (
+                        <View key={i} className="w-16 h-16 items-center justify-center">
+                            <View className="w-12 h-12 rounded-full border border-black dark:border-white opacity-10" />
+                            <View className="w-6 h-6 rounded-full border border-black dark:border-white absolute opacity-20" />
                         </View>
                     ))}
                 </View>
             )}
             {pattern === 'waves' && (
-                <View className="flex-1 p-2">
-                    {Array(20).fill(0).map((_, i) => (
-                        <View key={i} className="mb-4 h-4 w-full border-b-2 border-dashed border-black dark:border-white rounded-full opacity-30 rotate-[2deg]" />
+                <View className="flex-1 p-4">
+                    {Array(30).fill(0).map((_, i) => (
+                        <View key={i} className="mb-6 h-6 w-full border-b-2 border-dashed border-black dark:border-white rounded-full opacity-20 rotate-[1deg]" />
                     ))}
                 </View>
             )}
@@ -132,13 +135,13 @@ export default function NoteScreen() {
         media: [],
         bgColor: '',
         bgGradient: [],
-        bgPattern: '',
+        bgPattern: 'none',
         reminder: undefined,
     });
     const [isPreview, setIsPreview] = useState(false);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [showColorPicker, setShowColorPicker] = useState(false);
+    const [showAppearance, setShowAppearance] = useState(false);
     const [isChatVisible, setIsChatVisible] = useState(false);
     const [chatMessage, setChatMessage] = useState('');
     const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model'; parts: { text: string }[] }[]>([]);
@@ -170,7 +173,6 @@ export default function NoteScreen() {
         const { start, end } = selection;
 
         if (start !== end) {
-            // Selection exists, wrap it
             const selectedText = content.substring(start, end);
             let newText = '';
             if (tag === '#' || tag === '-') {
@@ -182,7 +184,6 @@ export default function NoteScreen() {
             }
             setNote(prev => ({ ...prev, content: newText }));
         } else {
-            // No selection, just insert
             const prefix = content.substring(0, start);
             const suffix = content.substring(start);
             setNote(prev => ({ ...prev, content: prefix + (tag === '[' ? '[text](url)' : tag + ' ') + suffix }));
@@ -246,33 +247,6 @@ export default function NoteScreen() {
         }
     };
 
-    const showDatePicker = () => {
-        try {
-            DateTimePickerAndroid.open({
-                value: new Date(),
-                mode: 'date',
-                is24Hour: true,
-                onChange: (event, date) => {
-                    if (date) {
-                        const dateStr = format(date, 'MMM d, yyyy');
-                        DateTimePickerAndroid.open({
-                            value: date,
-                            mode: 'time',
-                            is24Hour: true,
-                            onChange: (e, time) => {
-                                if (time) {
-                                    setNote(prev => ({ ...prev, reminder: `${dateStr} at ${format(time, 'HH:mm')}` }));
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
     const handleAiAction = async (action: 'summarize' | 'rewrite' | 'explain') => {
         if (!isOnline) return Alert.alert('Offline', 'AI requires internet');
         if (!note.content) return Alert.alert('Empty', 'Add some content first');
@@ -316,22 +290,46 @@ export default function NoteScreen() {
         finally { setIsAiLoading(false); }
     };
 
-    const hasCustomBg = note.bgColor || (note.bgGradient && note.bgGradient.length > 0);
-    const themeColors = note.bgColor ? { backgroundColor: note.bgColor } : {};
-    const iconColor = hasCustomBg ? "rgba(0,0,0,0.6)" : "#71717a";
+    const currentColors = colorScheme === 'dark' ? NOTE_COLORS_CONFIG.dark : NOTE_COLORS_CONFIG.light;
+    const currentGradients = colorScheme === 'dark' ? NOTE_GRADIENTS_CONFIG.dark : NOTE_GRADIENTS_CONFIG.light;
+
+    const getActiveColor = () => {
+        if (!note.bgColor) return 'transparent';
+        if (note.bgColor.startsWith('#')) return note.bgColor;
+        return currentColors.find(c => c.key === note.bgColor)?.value || 'transparent';
+    };
+
+    const getActiveGradient = () => {
+        if (!note.bgGradient || note.bgGradient.length === 0) return null;
+        if (note.bgGradient[0].startsWith('#')) return note.bgGradient;
+        const key = note.bgGradient[0];
+        return currentGradients.find(g => g.key === key)?.value || null;
+    };
+
+    const activeColor = getActiveColor();
+    const activeGradient = getActiveGradient();
+    const hasCustomBg = !!(note.bgColor && note.bgColor !== 'none') || !!(note.bgGradient && note.bgGradient.length > 0);
+
+    // Dynamic Contrast Logic
+    const textColor = hasCustomBg
+        ? (colorScheme === 'dark' ? "text-white" : "text-zinc-900")
+        : "text-zinc-900 dark:text-zinc-100";
+
+    const iconColor = hasCustomBg
+        ? (colorScheme === 'dark' ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)")
+        : "#71717a";
 
     return (
-        <View className={cn("flex-1", !hasCustomBg && (colorScheme === 'dark' ? "bg-zinc-950" : "bg-zinc-50"))} style={themeColors}>
-            {note.bgGradient && note.bgGradient.length > 1 && (
-                <LinearGradient colors={note.bgGradient as [string, string, ...string[]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+        <View className={cn("flex-1", !hasCustomBg && (colorScheme === 'dark' ? "bg-zinc-950" : "bg-zinc-50"))} style={{ backgroundColor: activeColor }}>
+            {activeGradient && (
+                <LinearGradient colors={activeGradient as [string, string, ...string[]]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             )}
             <PatternOverlay pattern={note.bgPattern} />
 
             <Stack.Screen options={{ headerShown: false }} />
             <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
-                {/* Header */}
-                <View className="flex-row items-center justify-between px-4 py-2 gap-2 relative z-10">
-                    <Pressable onPress={() => router.back()} className="p-2 -ml-2"><ArrowLeft size={24} color={iconColor} /></Pressable>
+                <View className="flex-row items-center justify-between px-4 py-2 relative z-10">
+                    <Pressable onPress={() => router.back()} className="p-2"><ArrowLeft size={24} color={iconColor} /></Pressable>
                     <View className="flex-row items-center space-x-2">
                         {isOnline && (
                             <Pressable onPress={() => setIsChatVisible(true)} className="p-2">
@@ -344,62 +342,25 @@ export default function NoteScreen() {
                     </View>
                 </View>
 
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 relative z-10">
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
                     <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 150 }}>
                         <TextInput
-                            className={cn("text-2xl font-bold mb-2", hasCustomBg ? "text-black/90" : "text-zinc-900 dark:text-zinc-100")}
-                            placeholder="Title"
+                            className={cn("text-3xl font-black mb-4", textColor)}
+                            placeholder="Note Title"
                             placeholderTextColor={hasCustomBg ? "rgba(0,0,0,0.2)" : "#a1a1aa"}
                             value={note.title}
                             onChangeText={t => setNote(prev => ({ ...prev, title: t }))}
                         />
 
-                        <View className="flex-row items-center mb-4 space-x-2">
-                            {note.reminder && (
-                                <Pressable onPress={showDatePicker} className="flex-row items-center bg-black/5 px-3 py-1 rounded-full">
-                                    <Clock size={12} color={iconColor} className="mr-2" />
-                                    <Text className={cn("text-xs font-bold", note.isCompleted && "line-through opacity-50")} style={{ color: iconColor }}>{note.reminder}</Text>
-                                    <Pressable onPress={() => setNote(p => ({ ...p, reminder: undefined }))} className="ml-2">
-                                        <X size={12} color={iconColor} />
-                                    </Pressable>
-                                </Pressable>
-                            )}
-
-                            {note.reminder && (
-                                <Pressable
-                                    onPress={async () => {
-                                        const newStatus = !note.isCompleted;
-                                        setNote(p => ({ ...p, isCompleted: newStatus }));
-                                        if (id !== 'new') {
-                                            await storage.toggleCompletion(id!);
-                                            await refreshReminderCount();
-                                        }
-                                    }}
-                                    className={cn(
-                                        "flex-row items-center px-3 py-1 rounded-full border",
-                                        note.isCompleted ? "bg-green-100 border-green-200" : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
-                                    )}
-                                >
-                                    {note.isCompleted ? (
-                                        <CheckCircle2 size={12} color="#16a34a" className="mr-2" />
-                                    ) : (
-                                        <Circle size={12} color="#71717a" className="mr-2" />
-                                    )}
-                                    <Text className={cn("text-[10px] font-bold", note.isCompleted ? "text-green-700" : "text-zinc-600 dark:text-zinc-400")}>
-                                        {note.isCompleted ? "COMPLETED" : "MARK AS DONE"}
-                                    </Text>
-                                </Pressable>
-                            )}
-                        </View>
-
                         {isPreview ? (
-                            <Markdown style={{ body: { fontSize: 18, color: hasCustomBg ? '#000' : (colorScheme === 'dark' ? '#fff' : '#3f3f46') } }}>{note.content || ''}</Markdown>
+                            <Markdown style={{ body: { fontSize: 18, color: hasCustomBg ? '#000' : (colorScheme === 'dark' ? '#eee' : '#3f3f46') } }}>{note.content || ''}</Markdown>
                         ) : (
                             <TextInput
-                                className={cn("text-lg ", hasCustomBg ? "text-black/80" : "text-zinc-800 dark:text-zinc-200")}
-                                placeholder="Start typing..."
+                                className={cn("text-lg", hasCustomBg ? "text-zinc-800" : "text-zinc-800 dark:text-zinc-200")}
+                                placeholder="Write your thoughts..."
                                 placeholderTextColor={hasCustomBg ? "rgba(0,0,0,0.2)" : "#a1a1aa"}
                                 multiline
+                                scrollEnabled={false}
                                 value={note.content}
                                 onChangeText={t => setNote(prev => ({ ...prev, content: t }))}
                                 onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
@@ -407,15 +368,15 @@ export default function NoteScreen() {
                         )}
 
                         {note.media && note.media.length > 0 && (
-                            <View className="flex-row flex-wrap mt-6 gap-3">
+                            <View className="mt-8 gap-4">
                                 {note.media.map((m, i) => (
-                                    <View key={i} className="w-full mb-3 shadow-sm relative">
+                                    <View key={i} className="relative rounded-3xl overflow-hidden shadow-lg border border-black/5">
                                         <Pressable onPress={() => setPreviewImage(m.uri)}>
-                                            <Image source={{ uri: m.uri }} className="w-full aspect-video rounded-3xl bg-black/5" />
+                                            <ExpoImage source={{ uri: m.uri }} className="w-full aspect-video" contentFit="cover" />
                                         </Pressable>
                                         <Pressable
                                             onPress={() => setNote(p => ({ ...p, media: p.media?.filter((_, idx) => idx !== i) }))}
-                                            className="absolute top-3 right-3 bg-red-500/80 p-2 rounded-full z-20"
+                                            className="absolute top-4 right-4 bg-red-500/90 p-2 rounded-full"
                                         >
                                             <Trash2 size={16} color="white" />
                                         </Pressable>
@@ -424,220 +385,121 @@ export default function NoteScreen() {
                             </View>
                         )}
                     </ScrollView>
+                </KeyboardAvoidingView>
 
-                    {/* AI Actions Row */}
-                    {!isPreview && isOnline && (
-                        <View className="px-4 py-2 border-t border-black/5 bg-white/30 dark:bg-black/30 flex-row">
-                            {(['summarize', 'rewrite', 'explain'] as const).map((action) => (
-                                <Pressable
-                                    key={action}
-                                    onPress={() => handleAiAction(action)}
-                                    disabled={isAiLoading}
-                                    className={cn(
-                                        "flex-row gap-1 items-center border border-zinc-200 dark:border-zinc-800 rounded-md px-2.5 py-1 mr-2 bg-white/80 dark:bg-zinc-900/80 shadow-sm",
-                                        activeAction === action && "opacity-50"
-                                    )}
-                                >
-                                    {activeAction === action ? (
-                                        <Loader size={12} color={primaryColor} className="mr-1.5 animate-spin" />
-                                    ) : (
-                                        action === 'summarize' ? <AlignLeft size={12} color={primaryColor} className="mr-1.5" /> :
-                                            action === 'rewrite' ? <Wand2 size={12} color={primaryColor} className="mr-1.5" /> :
-                                                <HelpCircle size={12} color={primaryColor} className="mr-1.5" />
-                                    )}
-                                    <Text className="text-[9px] font-black tracking-tighter" style={{ color: primaryColor }}>{action.toUpperCase()}</Text>
-                                </Pressable>
-                            ))}
+                {/* Bottom Toolbar */}
+                <View className="px-4 py-3 border-t border-black/5 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl flex-row items-center justify-between">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1 mr-4">
+                        <View className="flex-row items-center space-x-6 gap-2">
+                            <Pressable onPress={() => insertMarkdown('#')} className="p-2 bg-black/5 dark:bg-white/5 rounded-xl"><Heading1 size={20} color={iconColor} /></Pressable>
+                            <Pressable onPress={() => insertMarkdown('**')} className="p-2 bg-black/5 dark:bg-white/5 rounded-xl"><Bold size={20} color={iconColor} /></Pressable>
+                            <Pressable onPress={() => insertMarkdown('`')} className="p-2 bg-black/5 dark:bg-white/5 rounded-xl"><Code size={20} color={iconColor} /></Pressable>
+                            <Pressable onPress={() => insertMarkdown('-')} className="p-2 bg-black/5 dark:bg-white/5 rounded-xl"><List size={20} color={iconColor} /></Pressable>
+                            <View className="w-[1px] h-6 bg-black/10 mx-2" />
+                            <Pressable onPress={pickImage} className="p-2 bg-black/5 dark:bg-white/5 rounded-xl"><ImageIcon size={20} color={iconColor} /></Pressable>
+                            <Pressable onPress={() => setShowAppearance(!showAppearance)} className="p-2 bg-black/5 dark:bg-white/5 rounded-xl"><Palette size={20} color={showAppearance ? primaryColor : iconColor} /></Pressable>
                         </View>
-                    )}
+                    </ScrollView>
+                </View>
 
-                    {/* Toolbar */}
-                    <View className="flex-row items-center px-4 py-3 bg-white/80 dark:bg-zinc-900/50 border-t border-black/5 backdrop-blur-md">
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            <View className="flex-row space-x-6 items-center gap-3">
-                                <Pressable onPress={() => insertMarkdown('#')} className="p-1 bg-black/5 rounded-md"><Heading1 size={22} color={iconColor} /></Pressable>
-                                <Pressable onPress={() => insertMarkdown('**')} className="p-1 bg-black/5 rounded-md"><Bold size={20} color={iconColor} /></Pressable>
-                                <Pressable onPress={() => insertMarkdown('`')} className="p-1 bg-black/5 rounded-md"><Code size={20} color={iconColor} /></Pressable>
-                                <Pressable onPress={() => insertMarkdown('[')} className="p-1 bg-black/5 rounded-md"><ExternalLink size={20} color={iconColor} /></Pressable>
-                                <Pressable onPress={() => insertMarkdown('-')} className="p-1 bg-black/5 rounded-md"><List size={22} color={iconColor} /></Pressable>
-                                <View className="w-[1px] h-6 bg-black/10 mx-2" />
-                                <Pressable onPress={pickImage} className="p-1 bg-black/5 rounded-md"><ImageIcon size={22} color={iconColor} /></Pressable>
-                                <Pressable onPress={showDatePicker} className="p-1 bg-black/5 rounded-md"><Clock size={22} color={note.reminder ? primaryColor : iconColor} /></Pressable>
-                                <Pressable onPress={() => setShowColorPicker(!showColorPicker)} className="p-1 bg-black/5 rounded-md"><Palette size={22} color={iconColor} /></Pressable>
+                {/* Appearance Menu */}
+                {showAppearance && (
+                    <View className="absolute bottom-[80px] left-4 right-4 bg-white dark:bg-zinc-900 rounded-[32px] p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800">
+                        <View className="flex-row items-center justify-between mb-6">
+                            <Text className="font-black text-xs uppercase tracking-widest text-zinc-400">Appearance</Text>
+                            <Pressable onPress={() => setShowAppearance(false)}><X size={18} color="#71717a" /></Pressable>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false} className="max-h-[350px]">
+                            <Text className="text-[10px] font-bold text-zinc-400 mb-4 uppercase">Colors</Text>
+                            <View className="flex-row flex-wrap gap-4 mb-8">
+                                {currentColors.map(c => (
+                                    <Pressable
+                                        key={c.key}
+                                        onPress={() => setNote(p => ({ ...p, bgColor: c.key, bgGradient: [] }))}
+                                        style={{ backgroundColor: c.value || (colorScheme === 'dark' ? '#27272a' : '#f4f4f5'), width: 44, height: 44, borderRadius: 14, borderWidth: 2, borderColor: note.bgColor === c.key ? primaryColor : 'transparent' }}
+                                        className="items-center justify-center"
+                                    >
+                                        {note.bgColor === c.key && <Check size={18} color={primaryColor} />}
+                                    </Pressable>
+                                ))}
+                            </View>
+
+                            <Text className="text-[10px] font-bold text-zinc-400 mb-4 uppercase">Gradients</Text>
+                            <View className="flex-row flex-wrap gap-4 mb-8">
+                                {currentGradients.map(g => (
+                                    <Pressable
+                                        key={g.key}
+                                        onPress={() => setNote(p => ({ ...p, bgGradient: [g.key], bgColor: '' }))}
+                                        className="overflow-hidden"
+                                        style={{ width: 44, height: 44, borderRadius: 14, borderWidth: 2, borderColor: note.bgGradient?.[0] === g.key ? primaryColor : 'transparent' }}
+                                    >
+                                        <LinearGradient colors={g.value as [string, string, ...string[]]} className="flex-1 items-center justify-center">
+                                            {note.bgGradient?.[0] === g.key && <Check size={18} color="white" />}
+                                        </LinearGradient>
+                                    </Pressable>
+                                ))}
+                            </View>
+
+                            <Text className="text-[10px] font-bold text-zinc-400 mb-4 uppercase">Patterns</Text>
+                            <View className="flex-row flex-wrap gap-4">
+                                {NOTE_PATTERNS.map(p => (
+                                    <Pressable
+                                        key={p.name}
+                                        onPress={() => setNote(p2 => ({ ...p2, bgPattern: p.value }))}
+                                        className="bg-zinc-100 dark:bg-zinc-800 items-center justify-center overflow-hidden"
+                                        style={{ width: 44, height: 44, borderRadius: 14, borderWidth: 2, borderColor: note.bgPattern === p.value ? primaryColor : 'transparent' }}
+                                    >
+                                        {p.value === 'none' ? <X size={18} color="#71717a" /> : <Text className="text-[8px] font-black opacity-40 uppercase">{p.name}</Text>}
+                                    </Pressable>
+                                ))}
                             </View>
                         </ScrollView>
                     </View>
+                )}
 
-                    {showColorPicker && (
-                        <View className="absolute bottom-12 left-0 right-0 p-6 bg-white dark:bg-zinc-900 rounded-t-[40px] shadow-2xl border-t border-zinc-100 dark:border-zinc-800">
-                            <View className="flex-row items-center justify-between mb-4">
-                                <Text className="font-black text-[10px] tracking-widest text-zinc-400 uppercase">Note Appearance</Text>
-                                <Pressable onPress={() => setShowColorPicker(false)}><X size={18} color="#71717a" /></Pressable>
-                            </View>
-
-                            <ScrollView showsVerticalScrollIndicator={false} className="max-h-[300px]">
-                                <Text className="text-[9px] font-bold text-zinc-400 mb-3 uppercase">Solid Colors</Text>
-                                <View className="flex-row flex-wrap gap-4 mb-6">
-                                    {NOTE_COLORS.map(c => (
-                                        <Pressable
-                                            key={c.name}
-                                            onPress={() => setNote(p => ({ ...p, bgColor: c.value, bgGradient: [], bgPattern: p.bgPattern }))}
-                                            style={{ backgroundColor: c.value || (colorScheme === 'dark' ? '#27272a' : '#f4f4f5'), width: 44, height: 44, borderRadius: 12, borderWidth: 2, borderColor: note.bgColor === c.value && !note.bgGradient?.length ? primaryColor : 'transparent' }}
-                                            className="flex-1 items-center justify-center max-w-12 max-h-12 rounded-2xl"
-                                        >
-                                            {note.bgColor === c.value && !note.bgGradient?.length && <Check size={18} color={primaryColor} className="m-auto" />}
-                                        </Pressable>
-                                    ))}
-                                </View>
-
-                                <Text className="text-[9px] font-bold text-zinc-400 mb-3 uppercase">Gradients</Text>
-                                <View className="flex-row flex-wrap gap-3 mb-6">
-                                    {NOTE_GRADIENTS.map(g => (
-                                        <Pressable
-                                            key={g.name}
-                                            onPress={() => setNote(p => ({ ...p, bgGradient: g.value, bgColor: '', bgPattern: p.bgPattern }))}
-                                            className="overflow-hidden"
-                                            style={{ width: 44, height: 44, borderRadius: 12, borderWidth: 2, borderColor: JSON.stringify(note.bgGradient) === JSON.stringify(g.value) ? primaryColor : 'transparent' }}
-                                        >
-                                            <LinearGradient colors={g.value as [string, string, ...string[]]} className="flex-1 items-center justify-center max-w-12 max-h-12 rounded-2xl">
-                                                {JSON.stringify(note.bgGradient) === JSON.stringify(g.value) && <Check size={18} color="white" />}
-                                            </LinearGradient>
-                                        </Pressable>
-                                    ))}
-                                </View>
-
-                                <Text className="text-[9px] font-bold text-zinc-400 mb-3 uppercase">Patterns</Text>
-                                <View className="flex-row flex-wrap gap-3 mb-2">
-                                    {NOTE_PATTERNS.map(p => (
-                                        <Pressable
-                                            key={p.name}
-                                            onPress={() => setNote(prev => ({ ...prev, bgPattern: p.value }))}
-                                            className="bg-zinc-100 dark:bg-zinc-800 items-center justify-center overflow-hidden"
-                                            style={{ width: 44, height: 44, borderRadius: 12, borderWidth: 2, borderColor: (note.bgPattern === p.value || (!note.bgPattern && p.value === 'none')) ? primaryColor : 'transparent' }}
-                                        >
-                                            {p.value === 'none' ? (
-                                                <X size={18} color="#71717a" />
-                                            ) : (
-                                                <>
-                                                    <PatternOverlay pattern={p.value} />
-                                                    <Text className="text-[8px] font-black text-zinc-500 uppercase">{p.name}</Text>
-                                                </>
-                                            )}
-                                        </Pressable>
-                                    ))}
-                                </View>
-                            </ScrollView>
-                        </View>
-                    )}
-                </KeyboardAvoidingView>
-
-                {/* Floating Chat UI */}
+                {/* Chat Drawer */}
                 {isChatVisible && (
-                    <View className="absolute inset-0 bg-black/40 backdrop-blur-sm z-50">
+                    <View className="absolute inset-0 bg-black/40 backdrop-blur-sm z-[100]">
                         <Pressable className="flex-1" onPress={() => setIsChatVisible(false)} />
-                        <View
-                            className="bg-white dark:bg-zinc-950 rounded-t-[40px] shadow-2xl border-t border-zinc-100 dark:border-zinc-800"
-                            style={{ height: SCREEN_HEIGHT * 0.75 }}
-                        >
-                            {/* Drawer Handle */}
-                            <View className="items-center pt-3 pb-1">
-                                <View className="w-12 h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
-                            </View>
-
-                            {/* Chat Header */}
+                        <View className="bg-white dark:bg-zinc-950 rounded-t-[40px] shadow-2xl overflow-hidden" style={{ height: SCREEN_HEIGHT * 0.8 }}>
+                            <View className="h-1.5 w-12 bg-zinc-200 dark:bg-zinc-800 rounded-full mx-auto mt-4" />
                             <View className="flex-row items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
-                                <View className="flex-row items-center">
-                                    <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: primaryColor }} />
-                                    <Text className="font-black text-[10px] tracking-widest text-zinc-400 uppercase">Lumina Intelligence</Text>
-                                </View>
-                                <Pressable
-                                    onPress={() => setIsChatVisible(false)}
-                                    className="w-10 h-10 rounded-full bg-zinc-50 dark:bg-zinc-900 items-center justify-center active:scale-90 transition-all"
-                                >
-                                    <X size={18} color="#71717a" />
-                                </Pressable>
+                                <Text className="font-black text-xs tracking-widest text-zinc-400 uppercase">Lumina Assistant</Text>
+                                <Pressable onPress={() => setIsChatVisible(false)} className="p-2"><X size={20} color="#71717a" /></Pressable>
                             </View>
 
-                            <ScrollView className="flex-1 px-6 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
-                                {chatHistory.length === 0 && (
-                                    <View className="items-center justify-center mt-10">
-                                        <Text className="text-zinc-400 italic">How can I help with this note?</Text>
-                                    </View>
-                                )}
+                            <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 100 }}>
                                 {chatHistory.map((m, i) => (
                                     <View key={i} className={cn("mb-6", m.role === 'user' ? "items-end" : "items-start")}>
-                                        <View className={cn("px-2 rounded-3xl ", m.role === 'user' ? "bg-zinc-100 dark:bg-amber-900/40 shadow-sm max-w-[85%]" : "bg-white dark:bg-black max-w-[90%]")}>
-                                            <Markdown style={{ body: { fontSize: 16, color: m.role === 'user' ? (colorScheme === 'dark' ? '#fff' : '#92400e') : (colorScheme === 'dark' ? '#eee' : '#3f3f46') } }}>{m.parts[0].text}</Markdown>
-
-                                            {m.role === 'model' && (
-                                                <View className="flex-row items-center gap-2 mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                                                    <Pressable
-                                                        onPress={async () => {
-                                                            await Clipboard.setStringAsync(m.parts[0].text);
-                                                            Alert.alert('Copied', 'Text copied to clipboard');
-                                                        }}
-                                                        className="flex-row items-center bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-full border border-zinc-200 dark:border-zinc-800"
-                                                    >
-                                                        <Copy size={12} color={primaryColor} />
-                                                        <Text className="text-[10px] font-bold ml-1" style={{ color: primaryColor }}>COPY</Text>
-                                                    </Pressable>
-
-                                                    <Pressable
-                                                        onPress={() => {
-                                                            setNote(prev => ({ ...prev, content: (prev.content || '') + '\n\n' + m.parts[0].text }));
-                                                            setIsChatVisible(false);
-                                                            Alert.alert('Appended', 'AI response added to note');
-                                                        }}
-                                                        className="flex-row items-center bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-full border border-zinc-200 dark:border-zinc-800"
-                                                    >
-                                                        <PlusCircle size={12} color={primaryColor} />
-                                                        <Text className="text-[10px] font-bold ml-1" style={{ color: primaryColor }}>APPEND</Text>
-                                                    </Pressable>
-
-                                                    <Pressable
-                                                        onPress={() => {
-                                                            Alert.alert('Replace Content?', 'This will overwrite your existing note.', [
-                                                                { text: 'Cancel', style: 'cancel' },
-                                                                {
-                                                                    text: 'Replace', style: 'destructive', onPress: () => {
-                                                                        setNote(prev => ({ ...prev, content: m.parts[0].text }));
-                                                                        setIsChatVisible(false);
-                                                                    }
-                                                                }
-                                                            ]);
-                                                        }}
-                                                        className="flex-row items-center bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-full border border-zinc-200 dark:border-zinc-800"
-                                                    >
-                                                        <RefreshCw size={12} color={primaryColor} />
-                                                        <Text className="text-[10px] font-bold ml-1" style={{ color: primaryColor }}>REPLACE</Text>
-                                                    </Pressable>
-                                                </View>
-                                            )}
+                                        <View className={cn("p-4 rounded-[24px] max-w-[85%]", m.role === 'user' ? "bg-zinc-100 dark:bg-zinc-800" : "bg-white dark:bg-zinc-900 shadow-sm border border-zinc-100 dark:border-zinc-800")}>
+                                            <Markdown style={{ body: { fontSize: 16, color: colorScheme === 'dark' ? '#eee' : '#3f3f46' } }}>{m.parts[0].text}</Markdown>
                                         </View>
                                     </View>
                                 ))}
-                                {isAiLoading && <ActivityIndicator color={primaryColor} size="large" className="my-4" />}
+                                {isAiLoading && <ActivityIndicator color={primaryColor} className="mt-4" />}
                             </ScrollView>
 
-                            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                                <View className="p-4 flex-row items-center border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 pb-8">
-                                    <TextInput
-                                        className="flex-1 bg-zinc-50 dark:bg-zinc-900 px-6 py-3 rounded-full mr-3 dark:text-white"
-                                        placeholder="Ask anything..."
-                                        placeholderTextColor="#a1a1aa"
-                                        value={chatMessage}
-                                        onChangeText={setChatMessage}
-                                    />
-                                    <Pressable
-                                        onPress={handleChat}
-                                        style={{ backgroundColor: primaryColor }}
-                                        className="w-12 h-12 rounded-full items-center justify-center shadow-lg active:scale-95"
-                                    >
-                                        <Send size={20} color="white" />
-                                    </Pressable>
-                                </View>
-                            </KeyboardAvoidingView>
+                            <View className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex-row items-center pb-10">
+                                <TextInput
+                                    className="flex-1 bg-zinc-50 dark:bg-zinc-900 px-6 py-3 rounded-full dark:text-white"
+                                    placeholder="Ask Lumina..."
+                                    value={chatMessage}
+                                    onChangeText={setChatMessage}
+                                />
+                                <Pressable onPress={handleChat} className="ml-3 w-12 h-12 rounded-full items-center justify-center bg-zinc-900 dark:bg-zinc-100 shadow-lg">
+                                    <Send size={20} color={colorScheme === 'dark' ? '#000' : '#fff'} />
+                                </Pressable>
+                            </View>
                         </View>
+                    </View>
+                )}
+
+                {/* Preview Image Modal */}
+                {previewImage && (
+                    <View className="absolute inset-0 bg-black/95 z-[200] items-center justify-center">
+                        <Pressable onPress={() => setPreviewImage(null)} className="absolute top-12 right-6 p-4 z-50 bg-white/10 rounded-full"><X size={24} color="white" /></Pressable>
+                        <ExpoImage source={{ uri: previewImage }} className="w-full h-full" contentFit="contain" />
                     </View>
                 )}
             </SafeAreaView>
